@@ -3,12 +3,13 @@ Events are stored in the format mmddEvent Name.Event Desc/mmddyy...
  */
 
 public class Event {
-    String[] months = {"January", "February", "March",
+    private String[] months = {"January", "February", "March",
         "April", "May", "June", "July", "August", "September",
         "October", "November", "December"};
     int month, day;
     String name;
     String desc;
+    boolean annual;
     Event(String date){
         month = Integer.parseInt(date.substring(0,2));
         day = Integer.parseInt(date.substring(2,4));
@@ -20,11 +21,6 @@ public class Event {
             desc = null;
         }
     }
-
-    Event(String month, int day){
-
-    }
-
     /*
     returns string of format:
     March 4: Production started
