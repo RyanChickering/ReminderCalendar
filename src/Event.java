@@ -29,10 +29,10 @@ public class Event {
     @Override
     public String toString(){
         if(desc != null) {
-            return months[month - 1] + " " + day + ": " + name + "\n" +
+            return name + "\n" +
                     desc + "\n";
         } else {
-            return months[month - 1] + " " + day + ": " + name + "\n";
+            return name + "\n";
         }
     }
 
