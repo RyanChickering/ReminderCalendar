@@ -1,13 +1,9 @@
-import com.sun.xml.internal.ws.policy.privateutil.PolicyUtils;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.FileWriter;
 import java.nio.file.Files;
 import java.util.ArrayList;
-import java.util.Date;
-import javax.swing.*;
 import java.util.List;
 import java.util.Scanner;
 
@@ -63,7 +59,7 @@ public class Calendar {
     }
 
     int addEvent(Event event) {
-        int eventMonth = event.month - 1;
+        int eventMonth = event.month;
         List<Event> eventsForMonth = events.get(eventMonth);
         int i;
         for(i = 0; i < eventsForMonth.size(); i++){
@@ -72,6 +68,11 @@ public class Calendar {
             }
         }
         events.get(eventMonth).add(i, event);
+        try {
+            this.save();
+        }catch (Exception e){
+            System.out.println("An exception occurred while writing data");
+        }
         return 0;
     }
 
@@ -254,18 +255,16 @@ public class Calendar {
         daysPerMonth[1] = 28;
     }
 
-    ArrayList<JTableInfo> buildMonth(int[] date){
+    ArrayList<JTableInfo> buildMonth(int month, int year){
         //Find out what day of the week january first is of that year, then build the month
         //based on that
-        int month = date[0];
-        int year = date[1];
         if ((year) % 4 == 0 && ((year) % 100 != 0 || (year) % 400 == 0)) {
             daysPerMonth[1] = 29;
         }
         String[] intToDay = {"Sun","Mon","Tue","Wed",
                 "Thu","Fri","Sat"};
         int startday = 3;
-        if(date[1] >= 2020) {
+        if(year >= 2020) {
             //Calculates how many years away from 2020 we are
             while (year != 2020) {
                 //Leap year check. Subtract 1 from the year because you look at the year
@@ -326,23 +325,18 @@ public class Calendar {
         List<Event> events = this.getMonth(month);
         int eventi = 0;
         for (int dayi = startday; dayi < daysPerMonth[month] + startday; dayi++) {
-            ArrayList<Event> dayEvents = null;
+            ArrayList<Event> dayEvents = new ArrayList<>();
             while(eventi < events.size() && events.get(eventi).day <= (dayi-startday+1)){
-                dayEvents = new ArrayList<>();
                 if(events.get(eventi).day == (dayi-startday+1)) {
                     dayEvents.add(events.get(eventi));
                 }
                 eventi++;
             }
             String[][] eventArray;
-            if(dayEvents != null){
-                if(dayEvents.size()!= 0) {
-                    eventArray = new String[dayEvents.size()][1];
-                    for (int i = 0; i < dayEvents.size(); i++) {
-                        eventArray[i][0] = dayEvents.get(i).toString();
-                    }
-                } else {
-                    eventArray = new String[][] {{" "}};
+            if(dayEvents.size()!= 0) {
+                eventArray = new String[dayEvents.size()][1];
+                for (int i = 0; i < dayEvents.size(); i++) {
+                    eventArray[i][0] = dayEvents.get(i).toString();
                 }
             } else {
                 eventArray = new String[][] {{" "}};
@@ -350,11 +344,6 @@ public class Calendar {
             JTableInfo toadd = new JTableInfo(eventArray, new String[] {"" + (dayi-startday+1)});
             out.add(toadd);
         }
-        /*
-        while(out.size() < 43){
-            JTableInfo toadd = new JTableInfo(new String[][] {{""}}, new String[] {""});
-            out.add(toadd);
-        }*/
         daysPerMonth[1] = 28;
 
         return out;
