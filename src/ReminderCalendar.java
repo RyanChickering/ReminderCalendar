@@ -2,6 +2,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.time.Year;
 import java.util.List;
 
 public class ReminderCalendar {
@@ -14,7 +15,6 @@ public class ReminderCalendar {
         Calendar calendar = new Calendar();
         try {
             calendar.readFile();
-            //calendar.addEvent(new Event("0512Chance's Birthday"));
             calendar.save();
         } catch(Exception e){
             System.out.println("Exception caused: " + e);
@@ -32,11 +32,11 @@ public class ReminderCalendar {
                 //Creates a new frame that prompts the user for input about the event they
                 //would like to add.
                 JFrame eventAdder = new JFrame("Add Event");
-                JTextField name = new JTextField();
+                JTextField name = new JTextField("Enter a name");
                 JComboBox month = new JComboBox(months);
-                JTextField day = new JTextField();
+                JTextField day = new JTextField("Enter a day");
                 JCheckBox annual = new JCheckBox("Annual");
-                JTextField year = new JTextField();
+                JTextField year = new JTextField(Year.now().getValue() + "");
                 JButton confirm = new JButton("Confirm");
                 JButton cancel = new JButton("Cancel");
                 eventAdder.add(name);
@@ -48,35 +48,41 @@ public class ReminderCalendar {
                 eventAdder.setSize(300, 300);
                 eventAdder.setLayout(new GridLayout(6,1));
                 eventAdder.setVisible(true);
-                eventAdder.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+                eventAdder.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
                 //Action for the confirm button writes out a new event using the
                 //parameters provided in the other fields
+                //confirm.addActionListener(this::openAddEventWindow);
+
                 confirm.addActionListener(new ActionListener() {
                     @Override
                     public void actionPerformed(ActionEvent e) {
                         int monthNum =
                                 strMonthToInt(month.getItemAt(month.getSelectedIndex()).toString().toLowerCase());
-                        int dayNum = Integer.parseInt(day.getText());
-                        int yearNum = Integer.parseInt(year.getText());
+                        int yearNum;
+                        int dayNum;
+                        try {
+                            dayNum = Integer.parseInt(day.getText());
+                        } catch(Exception ex){
+                            errorFrame("Please enter a valid day");
+                            return;
+                        }
+                        //If the year is left blank, sets the year of the event to the current
+                        //year of the system.
+                        if(year.getText().equals("") && annual.isSelected()){
+                            yearNum = Year.now().getValue();
+                        } else {
+                            try {
+                                yearNum = Integer.parseInt(year.getText());
+                            } catch (Exception ex) {
+                                errorFrame("Please enter a valid year");
+                                return;
+                            }
+                        }
                         String eventName = name.getText();
-                        Boolean annualVal = annual.isContentAreaFilled();
+                        Boolean annualVal = annual.isSelected();
                         String description = "";
-                        if(calendar.daysPerMonth[monthNum] < dayNum || dayNum == 29){
-                            JFrame error = new JFrame("Error");
-                            JLabel errorMessage = new JLabel("That day does not exist in that month");
-                            error.add(errorMessage);
-                            JButton ok = new JButton("ok");
-                            error.add(ok);
-                            error.setLayout(new GridLayout(2,1));
-                            error.setSize(200,100);
-                            error.setVisible(true);
-                            error.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-                            ok.addActionListener(new ActionListener() {
-                                @Override
-                                public void actionPerformed(ActionEvent e) {
-                                    error.dispose();
-                                }
-                            });
+                        if(calendar.daysPerMonth[monthNum] < dayNum && dayNum != 29){
+                            errorFrame("That day does not exist within that month");
                         }
                         else {
                             Event eventToAdd = new Event(monthNum, dayNum, yearNum, annualVal, eventName, description);
@@ -129,7 +135,7 @@ public class ReminderCalendar {
         constraints.gridx = 0;
         constraints.gridy = 1;
         constraints.gridwidth = 3;
-        constraints.ipadx = 500;
+        constraints.ipadx = 200;
         constraints.ipady = 500;
         frame.add(calendarTable, constraints);
 
@@ -158,15 +164,34 @@ public class ReminderCalendar {
         });
     }
 
-    //event format: 4 bits month, 5 bits day, name of event
+    private static void errorFrame(String errorDesc){
+        JFrame error = new JFrame("Error");
+        JLabel errorMessage = new JLabel(errorDesc);
+        error.add(errorMessage);
+        JButton ok = new JButton("ok");
+        error.add(ok);
+        error.setLayout(new GridLayout(2,1));
+        error.setSize(200,100);
+        error.setVisible(true);
+        error.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        ok.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                error.dispose();
+            }
+        });
+        ok.addActionListener(e -> error.dispose());
 
+    }
+
+    //Method that refreshes the displayed calendar page whenever changes are made
     private static void refreshCalendar(JFrame frame, List<JTableInfo> newdays){
         GridBagConstraints constraints = new GridBagConstraints();
         frame.remove(calendarTable);
         calendarTable = calGrid(newdays);
         constraints.gridx = 0;
         constraints.gridy = 1;
-        constraints.ipadx = 500;
+        constraints.ipadx = 200;
         constraints.ipady = 500;
         constraints.gridwidth = 3;
         frame.add(calendarTable, constraints);
@@ -174,8 +199,10 @@ public class ReminderCalendar {
         frame.repaint();
     }
 
+    //Method that builds the calendar grid
     private static JPanel calGrid(List<JTableInfo> info){
         JPanel calendarTable = new JPanel();
+        //Adds the names of the days to the grid
         JLabel sun, mon, tue, wed, thu, fri, sat;
         sun = new JLabel("Sunday"); mon = new JLabel("Monday");
         tue = new JLabel("Tuesday"); wed = new JLabel("Wednesday");
@@ -186,20 +213,13 @@ public class ReminderCalendar {
         calendarTable.add(sat);
         for(JTableInfo calday: info){
             JTable toAdd = new JTable(calday.data, calday.headers);
-            toAdd.setBounds(0,0,100,100);
+            //toAdd.setBounds(0,0,85,85);
             JScrollPane paneAdd = new JScrollPane(toAdd);
             calendarTable.add(paneAdd);
         }
-        calendarTable.setLayout(new GridLayout(ceil(info.size()/7.0)+1,7));
+        //Sets the number of rows and columns
+        calendarTable.setLayout(new GridLayout(0,7));
         return calendarTable;
-    }
-
-    private static int ceil(double input){
-        int compare = (int) input;
-        if(compare < input){
-            return compare + 1;
-        }
-        return compare;
     }
 
     private static int strMonthToInt(String month){

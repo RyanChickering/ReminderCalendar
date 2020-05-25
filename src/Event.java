@@ -45,23 +45,26 @@ public class Event {
         }
     }
 
-    //4 bits for month, 5 bits for day, 1 bit for annual, 21 bits for year.
+    //4 bits for month, 5 bits for day, 1 bit for annual, 14 bits for year.
     //Event name, event description
+    //January 1, 2020 (Annual) ->   0000 0000 11 00 0111 1110 0100 -> 00C7e4
+    //February 2, 2020 ->           0001 0001 00 00 0111 1110 0100 -> 1107e4
     String toFormat(){
         int total = month;
-        total = total << 4;
-        total += day;
         total = total << 5;
+        total += day;
+        total = total << 1;
         if(annual){
-            day += 1;
+            total += 1;
         }
-        total = total << 22;
+        total = total << 14;
         total += year;
-        char gs = (char) 35;
+        char descSeparator = (char) 169;
+        char entrySeparator = (char) 170;
         if(desc != null) {
-            return String.format("%04d%s.%s%c", total, name, desc, gs);
+            return String.format("%06x%s%c%s%c", total, name, descSeparator, desc, entrySeparator);
         } else {
-            return String.format("%04d%s%c", total, name, gs);
+            return String.format("%06x%s%c", total, name, entrySeparator);
         }
     }
 }

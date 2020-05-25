@@ -36,12 +36,38 @@ public class Calendar {
                 //keep track of the first index of each event
                 int startIdx = 0;
                 int endIdx;
+                String descSeparator = (char) 169 + "";
+                String entrySeparator = (char) 170 + "";
                 //while there are still more events
-                while(line.substring(startIdx).contains("/")){
-                    endIdx = line.substring(startIdx).indexOf("/") + startIdx;
-                    lineEvents.add(new Event(line.substring(startIdx,endIdx)));
-                    //update the starting index to be the end of the previous index
+                while(line.substring(startIdx).contains(entrySeparator)){
+                    endIdx = line.substring(startIdx).indexOf(entrySeparator) + startIdx;
+                    String event = line.substring(startIdx, endIdx);
+                    String name;
+                    //Gets the number that represents month, day, annual, and year
+                    int date = Integer.parseInt(event.substring(0,6), 16);
+                    //Uses masks and shifts to get the values for each variable
+                    int month = date & 0xF00000;
+                    month = month >> 22;
+                    int day = date & 0xF8000;
+                    day = day >> 15;
+                    boolean annual = false;
+                    //checks if the annual bit is true
+                    if((date & 0x4000) > 0){
+                        annual = true;
+                    }
+                    int year = date & 0xFFF;
+                    //Checks if the event has a description
+                    if(event.contains(descSeparator)){
+                        name = event.substring(6,event.indexOf(descSeparator));
+                        event = event.substring(event.indexOf(descSeparator)+1);
+                    } else {
+                        name = event.substring(6);
+                        event = null;
+                    }
                     startIdx = endIdx + 1;
+                    //Adds the new event to the events for the month
+                    lineEvents.add(new Event(month, day, year, annual, name, event));
+
                 }
                 events.add(lineEvents);
             }
@@ -58,7 +84,8 @@ public class Calendar {
 
     }
 
-    int addEvent(Event event) {
+    //Method to add an event to the calendar
+    void addEvent(Event event) {
         int eventMonth = event.month;
         List<Event> eventsForMonth = events.get(eventMonth);
         int i;
@@ -73,7 +100,6 @@ public class Calendar {
         }catch (Exception e){
             System.out.println("An exception occurred while writing data");
         }
-        return 0;
     }
 
     @Override
@@ -261,6 +287,7 @@ public class Calendar {
         if ((year) % 4 == 0 && ((year) % 100 != 0 || (year) % 400 == 0)) {
             daysPerMonth[1] = 29;
         }
+        int yearRef = year;
         String[] intToDay = {"Sun","Mon","Tue","Wed",
                 "Thu","Fri","Sat"};
         int startday = 3;
@@ -317,30 +344,44 @@ public class Calendar {
                 startday += 7;
             }
         }
+        //Pads the beginning of the month with empty tables so that the day
+        //of the week is correct
         ArrayList<JTableInfo> out = new ArrayList<>();
         for (int i = 0; i < startday; i++) {
             JTableInfo toadd = new JTableInfo(new String[][] {{""}}, new String[] {""});
             out.add(toadd);
         }
+        //Gets the events for the month
         List<Event> events = this.getMonth(month);
         int eventi = 0;
+        //Loop that adds the events of the month to the proper table of each day
         for (int dayi = startday; dayi < daysPerMonth[month] + startday; dayi++) {
             ArrayList<Event> dayEvents = new ArrayList<>();
+            //Processes all events
             while(eventi < events.size() && events.get(eventi).day <= (dayi-startday+1)){
-                if(events.get(eventi).day == (dayi-startday+1)) {
-                    dayEvents.add(events.get(eventi));
+                Event currEvent = events.get(eventi);
+                //When the day of the selected event matches the day on the calendar
+                if(currEvent.day == (dayi-startday+1)) {
+                    //Check if the event happens every year or in the current year
+                    if(currEvent.annual || currEvent.year == yearRef){
+                        dayEvents.add(currEvent);
+                    }
                 }
                 eventi++;
             }
+            //Puts the array of dayevents into a 2D array that can be used
+            //by a JTable
             String[][] eventArray;
             if(dayEvents.size()!= 0) {
                 eventArray = new String[dayEvents.size()][1];
                 for (int i = 0; i < dayEvents.size(); i++) {
                     eventArray[i][0] = dayEvents.get(i).toString();
                 }
+                //If there are no events, make a table with empty data
             } else {
                 eventArray = new String[][] {{" "}};
             }
+            //Add a JTableInfo that contains the day's events and the number of the day
             JTableInfo toadd = new JTableInfo(eventArray, new String[] {"" + (dayi-startday+1)});
             out.add(toadd);
         }
